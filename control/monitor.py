@@ -59,6 +59,57 @@ def analyze_data():
     print(alerts, "alertas enviadas")
 
 
+def consulta_dos():
+    # Consulta todos los datos de la última hora, y emite una alarma si la medicion supera el valor promedio de la medicion
+
+    print("Calculando alertas para la segunda consulta...")
+
+    data = Data.objects.filter(
+        base_time__gte=datetime.now() - timedelta(hours=1))
+    aggregation = data.annotate(check_value=Avg('avg_value')) \
+        .select_related('station', 'measurement') \
+        .select_related('station__user', 'station__location') \
+        .select_related('station__location__city', 'station__location__state',
+                        'station__location__country') \
+        .values('check_value', 'station__user__username',
+                'measurement__name',
+                'measurement__max_value',
+                'measurement__min_value',
+                'station__location__city__name',
+                'station__location__state__name',
+                'station__location__country__name')
+    alerts = 0
+    for item in aggregation:
+        alert = False
+
+        variable = item["measurement__name"]
+        max_value = item["measurement__max_value"] or 0
+        min_value = item["measurement__min_value"] or 0
+
+        country = item['station__location__country__name']
+        state = item['station__location__state__name']
+        city = item['station__location__city__name']
+        user = item['station__user__username']
+
+        #if item["check_value"] > max_value or item["check_value"] < min_value:
+        #    alert = True
+        
+        if variable > item["check_value"]:
+            print("La medicion es superior al promedio")
+            alert = True
+
+        if alert:
+            #message = "ALERT {} {} {}".format(variable, min_value, max_value)
+            message = "TH"
+            topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+            print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+            client.publish(topic, message)
+            alerts += 1
+
+    print(len(aggregation), "dispositivos revisados")
+    print(alerts, "alertas enviadas")
+
+
 def on_connect(client, userdata, flags, rc):
     '''
     Función que se ejecuta cuando se conecta al bróker.
@@ -104,9 +155,14 @@ def start_cron():
     '''
     Inicia el cron que se encarga de ejecutar la función analyze_data cada 5 minutos.
     '''
-    print("Iniciando cron...")
-    schedule.every(5).minutes.do(analyze_data)
-    print("Servicio de control iniciado")
+    print("Iniciando cron para consulta 1...")
+    schedule.every(1).minutes.do(analyze_data)
+    print("Servicio de control iniciado de consulta 1")
+    
+    print("Iniciando cron para consulta 2...")
+    schedule.every(1).minutes.do(consulta_dos)
+    print("Servicio de control iniciado de consulta 2")
+
     while 1:
         schedule.run_pending()
         time.sleep(1)
