@@ -60,9 +60,11 @@ def analyze_data():
 
 
 def consulta_dos():
-    # Consulta todos los datos de la última hora, y emite una alarma si la medicion supera el valor promedio de la medicion
+    # Consulta todos los datos de la última hora, y emite una alarma si la medicion supera el valor promedio de la variable
 
     print("Calculando alertas para la segunda consulta...")
+
+    last_record = Data.objects.order_by('base_time').last()
 
     data = Data.objects.filter(
         base_time__gte=datetime.now() - timedelta(hours=1))
@@ -94,7 +96,7 @@ def consulta_dos():
         #if item["check_value"] > max_value or item["check_value"] < min_value:
         #    alert = True
         
-        if variable > item["check_value"]:
+        if last_record.avg_value > item["check_value"]:
             print("La medicion es superior al promedio")
             alert = True
 
