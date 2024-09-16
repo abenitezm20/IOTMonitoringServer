@@ -102,7 +102,7 @@ def consulta_dos():
 
         if alert:
             #message = "ALERT {} {} {}".format(variable, min_value, max_value)
-            message = "TH"
+            message = "ALERT TH"
             topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
             print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
             client.publish(topic, message)
@@ -158,7 +158,7 @@ def start_cron():
     Inicia el cron que se encarga de ejecutar la función analyze_data cada 5 minutos.
     '''
     print("Iniciando cron para consulta 1...")
-    #schedule.every(1).minutes.do(analyze_data)
+    schedule.every(1).minutes.do(analyze_data)
     print("Servicio de control iniciado de consulta 1")
     
     print("Iniciando cron para consulta 2...")
